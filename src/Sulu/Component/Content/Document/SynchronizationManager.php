@@ -12,7 +12,7 @@ use Sulu\Component\DocumentManager\Behavior\Mapping\PathBehavior;
 use Sulu\Component\Content\Document\Behavior\WorkflowStageBehavior;
 use Sulu\Component\Content\Document\WorkflowStage;
 use Sulu\Bundle\DocumentManagerBundle\Bridge\DocumentManagerRegistry;
-use Sulu\Component\Content\Document\Behavior\SyncronizeBehavior;
+use Sulu\Component\Content\Document\Behavior\SynchronizeBehavior;
 use Sulu\Bundle\DocumentManagerBundle\Bridge\PropertyEncoder;
 use Sulu\Bundle\DocumentManagerBundle\Bridge\DocumentInspector;
 use Sulu\Component\DocumentManager\Behavior\Mapping\ParentBehavior;
@@ -25,7 +25,7 @@ use Sulu\Bundle\ContentBundle\Document\RouteDocument;
  *
  * NOTE: In the future multiple document managers may be supported.
  */
-class SyncronizationManager
+class SynchronizationManager
 {
     /**
      * @var DocumentManagerRegistryInterface
@@ -71,15 +71,15 @@ class SyncronizationManager
     }
 
     /**
-     * Syncronize a document and any other documents which are
+     * Synchronize a document and any other documents which are
      * associated with it and should also be published.
      *
      * All document managers involved will be FLUSHED after
      * the operation has completed.
      *
-     * @param SyncronizeBehavior $document
+     * @param SynchronizeBehavior $document
      */
-    public function syncronizeFull(SyncronizeBehavior $document, $force = false)
+    public function syncronizeFull(SynchronizeBehavior $document, $force = false)
     {
         // get the default managerj
         $defaultManager = $this->registry->getManager();
@@ -103,11 +103,11 @@ class SyncronizationManager
             $routes = $this->getDocumentRoutes($defaultManager->getInspector(), $document);
         }
 
-        $toSyncronize = array_merge([
+        $toSynchronize = array_merge([
             $document,
         ], $routes);
 
-        foreach ($toSyncronize as $syncDocument) {
+        foreach ($toSynchronize as $syncDocument) {
             $this->syncronizeSingle($syncDocument, $force);
         }
 
@@ -116,7 +116,7 @@ class SyncronizationManager
     }
 
     /**
-     * Syncronize a single document to the publish document manager in the
+     * Synchronize a single document to the publish document manager in the
      * documents currently registered locale.
      *
      * FLUSH will not be called and no associated documents will be
@@ -124,10 +124,10 @@ class SyncronizationManager
      *
      * TODO: Add an explicit "locale" option?
      *
-     * @param SyncronizeBehavior $document
+     * @param SynchronizeBehavior $document
      * @param boolean $force
      */
-    public function syncronizeSingle(SyncronizeBehavior $document, $force = false)
+    public function syncronizeSingle(SynchronizeBehavior $document, $force = false)
     {
         $defaultManager = $this->registry->getManager();
         $publishManager = $this->registry->getManager($this->publishManagerName);
@@ -140,7 +140,7 @@ class SyncronizationManager
         // get the list of managers with which the document is already
         // syncronized (the value may be NULL as we have no control over what
         // the user does with this mapped value).
-        $synced = $document->getSyncronizedManagers() ?: [];
+        $synced = $document->getSynchronizedManagers() ?: [];
 
         // unless forced, we will not process documents which are already
         // synced with the publish document manager.
@@ -207,7 +207,7 @@ class SyncronizationManager
         $node = $inspector->getNode($document);
         $node->setProperty(
             $this->encoder->localizedSystemName(
-                SyncronizeBehavior::SYNCED_FIELD,
+                SynchronizeBehavior::SYNCED_FIELD,
                 $inspector->getLocale($document)
             ),
             array_unique($synced)
@@ -232,14 +232,14 @@ class SyncronizationManager
 
             // this clause is technically not required as we already know that
             // it is a RouteDocument, but it adds another layer of safety.
-            if (!$referrer instanceof SyncronizeBehavior) {
+            if (!$referrer instanceof SynchronizeBehavior) {
                 throw new \RuntimeException(sprintf(
-                    'All route classes must implement the SyncronizeBehavior, for "%s"'
+                    'All route classes must implement the SynchronizeBehavior, for "%s"'
                 , get_class($referrer)));
             }
 
             // if the route is already syncronized, continue.
-            if (in_array($this->publishManagerName, $referrer->getSyncronizedManagers())) {
+            if (in_array($this->publishManagerName, $referrer->getSynchronizedManagers())) {
                 continue;
             }
 
